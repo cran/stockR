@@ -1,0 +1,215 @@
+%\VignetteIndexEntry{stockR Introduction}
+%\VignettePackage{stockR}
+%\VignetteEngine{knitr::knitr}
+
+\documentclass[article,shortnames,nojss]{jss}
+
+%% almost as usual
+\author{Scott D. Foster\\CSIRO, Hobart, Tasmania, Australia}
+\title{An Introduction to \pkg{stockR}}
+\date{\itshape\today}
+
+%% for pretty printing and a nice hypersummary also set:
+\Plainauthor{Scott D. Foster} %% comma-separated
+\Plaintitle{An Introduction to stockR} %% without formatting
+\Shorttitle{stockR} %% a short title (if necessary)
+
+\Abstract{
+  The stockR package is useful for finding stock structure within species (combined) populations.  It does so by using a (potentially large) number of co-dominant genetic markers, for example SNPs.  The package implements the methods described in \citet{fos18}, which is a variation on the models and computational methods described elsewhere \citep[see reference list in][]{fos18}.  In this tutorial, we will go through the steps of:
+  \begin{enumerate}
+    \item Simulate (from a mixture model) SNP data for a population of animals with a known number of stocks (sup-populations); and
+    \item Analyse the simulated data (and retrieve the simulated populations).
+  \end{enumerate}
+  We shall perform this twice, once in the situation where none of the individuals are assumed to share the same stock and once where some individuals do. These individuals may have been sampled from a breeding aggregation \citep[as in the yellowfin tuna data in ][]{fos18}. This introduction is, largely because there is (at present) limited functionality in this package. However, we have concentrated on making the routines available to be \textit{good} (we hope that the interface is fine too).
+}
+\Keywords{Stock Structure, Sub-Population, SNP Marker, Mixture Model, \proglang{R}}
+\Plainkeywords{Stock Structure, Sub-Population, SNP Marker, Mixture Model, R}
+
+\Address{
+  Scott D. Foster\\
+  CSIRO\\
+  Marine Laboratories\\
+  GPObox 1538\\
+  Hobart 7001\\
+  Australia
+  E-mail: \email{scott.foster@csiro.au}
+}
+
+\usepackage{natbib}
+\usepackage{url}
+
+\renewcommand{\thefootnote}{\fnsymbol{footnote}}
+
+\begin{document}
+
+%<<prelim, echo = FALSE, results = "hide">>=
+<<prelim, echo = FALSE, results="hide">>=
+library( knitr)
+opts_chunk$set(cache=TRUE, message = FALSE, comment = "", dev="pdf",
+                      dpi=300, fig.show = "hold", fig.align = "center")
+@
+
+\section*{First Things First (setting up R for using stockR)}
+
+Before starting with this introduction to \texttt{stockR}, we need to make sure that everything is set up properly. Much of this will vary from computer to computer, but you must have a working version of R installed (preferably the latest one). This introduction was written and tested using R-3.4.0. It does not matter whether you prefer to use R through a development environment (such as RStudio) or through the command line -- the results should be the same. So, start R and then:
+<<setup1, eval=FALSE>>=
+install.packages( "stockR")  
+@
+\noindent You will be asked which repository you want to use. Just use one that is geographically close to where you are (or where your computer is). Next load the package.
+<<setup2>>=
+library( stockR)
+@
+\noindent For illustration is is also good to fix the random number seed, so that this document is reproducible \textit{exactly}.
+<<setSeed>>=
+set.seed( 747)  #a 747 is a big plane
+@
+\noindent Now, we are good to go with the rest of the introduction.
+
+\section*{Simulating a Co-Dominant Genetic Marker Data set}
+
+Let's simulate a data set, using the mixture model in \citet[][where the mathematical/technical treatment is also given]{fos18}. We shall simulate data from $K=3$ stocks, without any sampling groups. It is important to note that the current implementation does not allow for specified stock sizes -- the expectation of a stock size is the number of sampling groups divided by the number of stocks.
+<<simData>>=
+#number of individuals
+N <- 100
+#number of markers to measure on each of the individuals
+M <- 5000
+#number of sampling groups (same as number of individuals)
+S <- N
+#number of stocks
+K <- 3
+#simulate the data
+myData <- sim.stock.data( nAnimal=N, nSNP=M, nSampleGrps=N, K=K)
+@
+This produces a data matrix of dimensions ($M\times N$) so that the rows index the markers and the columns index the individuals. This data format is common to all functions within \texttt{stockR}. Although not highlighted here, it is possible to simulate datasets that have a limited number of informative markers -- markers that are segregating between the stocks. Also, it is possible to alter the amount of separation between the stocks, but the default is demonstrated here \citep[see][for details and parameterisation]{fos18}.
+
+We have now simulated data, so lets have a look at the contents of the data. Basically, the object \texttt{myData} is a matrix with the number of columns equal to the number of individuals and the number of rows equal to the number of loci (in this case it is a $5000\times100$ matrix). This object has a number of attributes though. These correspond to the stocks that each individual belongs to, as well as their sampling group. Ordering is the same as in the matrix of data too. Let's have a look at the data with code.
+<<lookAtData>>=
+#the dimensions of the data
+dim( myData)
+#the number of fish
+ncol( myData)
+#the number of markers
+nrow( myData)
+#summary of the stock sizes
+table( attributes( myData)$grps)
+#the individuals are ordered by stock membership
+attributes( myData)$grps
+#in this case the third stock is under-represented in the entire data set. On
+#average, there will be equal numbers though.
+@
+The data themselves represent the number of copies of one of the alleles that each fish carries at each loci. Which allele is arbitrary, it could be (for example) SNP or reference. For exposition, let's call the two alleles A and B, and we shall store the data in terms of allele A. That is a $0$ means zero copies (homozygous -- BB), a $1$ is heterozygous (AB and BA), and a $2$ means 2 copies (homozygous -- AA).
+<<lookAtData2>>=
+#a quick look at the data -- first 5 markers and 3 individuals
+myData[1:5,1:3]
+#so, all individuals have two allele copies (homozygous) for the third loci
+#the second fish is heterozygous for the allele at the first loci.
+#and so on.
+@
+
+\section*{Finding Stocks In Simulated Data}
+
+The simulated data is designed to match the input requirements for the stock identification function. For any real data set, there may have to be slightly more manipulation of the data. The key features of the input data is that: 1) it has as many rows as there are markers; 2) there are as many columns as individuals; 3) it is numeric (not a factor); 4) NAs are OK (they are ignored in grouping); and 5) the coding of data is by number of allele copies. The attributes of the simulated data (sample groups and stock membership) are not required to be present -- although sample groups do need to be specified as their own function argument. Let's have a look at some code to find stocks:
+<<findStocks>>=
+#find the stocks in the data
+stocks <- stockSTRUCTURE( myData, K=3)  #K-EM estimation is default
+#the (posterior) membership probability to each stock
+stocks$postProb #shows high discrimination, which could be erroneous (bootstrap soon)
+#hard classificaiton of individuals to stocks
+stocks$hardClass <- apply( stocks$postProb, 1, which.max)
+#Bootstrap to see about uncertainty in assignment
+#for serious applications many more than B=25 will be needed.
+#only 2 cores used to pass CRAN's arbitrary checks
+stocks$boot <- stockBOOT( stocks, B=25, mc.cores=2)  
+#Assignment accounting for uncertainty. 
+#Could also look at other model quantities (e.g. allele frequencties)
+stocks$uncertClass <- apply( stocks$boot$postProbs, 1:2, quantile, probs=c(0.05,0.5,0.95))
+#careful inspection of this object will give the lower and upper 90% confidence intervals and the median
+#e.g. for the 99th individual
+print( round( stocks$uncertClass[,99,], 3))
+#showing that there is some uncertainty about which stock this indivudal belongs to.
+@
+There are a bunch of other output data in the \texttt{stocks} object. These either relate to the input data, the arguments used, or to potentially useful quantities (such as mean allele frequencies within each stock).
+
+For these data, the stocks were reliably found. Care should be exerted though as there is no effort given to trying to account for label-switching of output (so estimated stock 1 may actually correspond to simulated stock 3, for example). The last lines of code assess the uncertainty in the assignment of the stock assignment. This is done by bootstrap methods \citep[see][]{fos18}, and in this case we find 90\% confidence intervals as well as the median. Results for only the 99\textsuperscript{th} individual are presented, which shows considerable variation -- it is uncertain if this individual should be in the second or third stock.
+
+The \texttt{stockSTRUCTURE} function has a number of different options for how the estimation of stock structure is performed. In most cases, the defaults should be reasonable but it is upon the user to make sure. Have a look at \texttt{?stockSTRUCTURE} and at \citet{fos18} for the different options and what they implement.
+
+\section*{Simulating and Finding Stocks with Sampling Groups}
+
+Code is now presented for simulating and analysing data with sampling groups, such as might arise from sampling a breeding aggregation. In this case, these samples are \textit{a priori} known to come from the same stock and the analysis should assign all these fish to the same stock. See \citet{fos18} for more details.
+<<sampGrps>>=
+#number of sampling groups (same as number of individuals)
+S <- 15   #there are now 15 sampling groups (100 individuals will be 
+	#distributed between them).
+#number of stocks
+K <- 3
+#simulate the data
+myData <- sim.stock.data( nAnimal=N, nSNP=M, nSampleGrps=S, K=K)
+#find stocks in data
+stocks <- stockSTRUCTURE( myData, K=3, 
+			sample.grps=attributes(myData)$sampleGrps)
+#once again, the stocks have been found (up to labelling)
+#the simulated values
+attributes( myData)$grps
+#the data-derived values (as hard clustered)
+apply( stocks$postProbs, 1, which.max)
+#Bootstrap to see about uncertainty in assignment
+#for serious applications many more than B=25 will be needed.
+#only 2 cores used to pass CRAN's arbitrary checks
+stocks$boot <- stockBOOT( stocks, B=25, mc.cores=2)  
+#Assignment accounting for uncertainty. 
+#Could also look at other model quantities (e.g. allele frequencties)
+stocks$uncertClass <- apply( stocks$boot$postProbs, 1:2, quantile, probs=c(0.05,0.5,0.95))
+#careful inspection of this object will give the lower and upper 90% confidence intervals and the median
+#e.g. for the 99th individual
+print( round( stocks$uncertClass, 3))
+#Showing that there is almost no uncertainty about which stock this indivudal belongs to.
+#There is lots of information in this data, especially when genetic information between 
+#individuals in the same sampling group is utilised.
+@
+
+\section*{Short Note on Missing Data}
+
+The simulated data above does not contain any missing marker scores, which will be ubiquitous in real data. However, \texttt{stockR} can handle missing data. It does so by assuming that the missing values are completely at random (e.g. missingness is not inheritable, nor is it related to stock structure). These values simply do not add to the likelihood of the individual belonging to any particular stock. Once again, see \citet{fos18} for more detail. We cannot provide any guidelines to the user about the level of missingness one can tolerate in a marker's score (or an individual). Let us have a look at the behaviour of the code with some added missing values.
+<<miss>>=
+myData <- sim.stock.data( nAnimal=N, nSNP=M, nSampleGrps=N, K=K)
+#add some missing data to simulation. There are 30% randomly missing scores.
+totMark <- prod( dim( myData))
+myData[sample( 1:totMark, size=floor( 0.3*totMark))] <- NA
+#find stocks in data
+stocks <- stockSTRUCTURE( myData, K=3)
+#once again, the stocks have been found (up to labelling)
+#the simulated values
+attributes( myData)$grps
+#the data-derived values (as hard clustered)
+apply( stocks$postProbs, 1, which.max)
+#bootstrap not performed for this example
+@
+
+\section*{Summary}
+
+In this short introduction the two functions in \texttt{stockR} have been introduced. These functions simulate data and analyse it for stock structure. They are easy to use and the default estimation method is fast (much faster than many other methods and slower than only one or two). See \citet{fos18} for the comparison and for assessment of reliability.
+
+If you have any queries regarding the package, then please contact the developer/maintainer. Your comments will be welcomed.
+
+
+\section*{Last Things Last}
+
+The only remaining thing to do is to tidy up our workspace. This is just removing all objects for this analysis from your workspace. I like to do this, in tutorial situations, but you may not. It is entirely up to you whether you clean or not.
+<<Tidy>>=
+#tidy
+rm( list=ls())
+@
+
+\bibliography{stockR}
+
+\section{Appendix}
+
+\subsection{Computational details}
+This vignette was created using the following R and add-on package versions
+
+<<sessionInfo, results = "asis", echo = FALSE>>=
+toLatex(sessionInfo())
+@
+
+\end{document}

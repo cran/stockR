@@ -1,0 +1,17 @@
+33267d27fe906919e7771ffec5296f84 *DESCRIPTION
+7403370f3708e67e8f6b38d31f85973d *INDEX
+daacaa59b7a58ebf11cb76dc10e99a6a *NAMESPACE
+1da42405c75b57214f09caa5a913cd71 *R/stockR.R
+c734958db70c5aae8f5f318205614868 *R/sysdata.rda
+c22c2f0a53b0f5a40153ccdc8e9c95c3 *build/vignette.rds
+3a4177605678e3c595901ff442263d30 *inst/doc/stockR.R
+06753eb4ff1d556a4c670ad4bdbffc0b *inst/doc/stockR.Rnw
+46e132187db35ac46248cbb75e85d358 *inst/doc/stockR.pdf
+a453f31c1940f37cf8dbac653dce887c *man/calcFst.Rd
+80c3c45c362cf01334d12e3404181744 *man/sim.stock.data.Rd
+76485b1108cfd497bd01563088d1d230 *man/stockBOOT.Rd
+34db1de5ec1af9c6bbfbe1e1226b645e *man/stockSTRUCTURE.Rd
+9f79e688283b4023985da7f92ee4e2bd *src/ggfstat.f
+2444bbfdb67115b85c0a08b4d6358325 *src/stockR_init.c
+06753eb4ff1d556a4c670ad4bdbffc0b *vignettes/stockR.Rnw
+3c0eaecdd1d06614d06bc0f7798019a9 *vignettes/stockR.bib

@@ -1,0 +1,4 @@
+calcFst                             Calculate Fst statistics for frequency data
+sim.stock.data                      Simulates SNP data according to stockSTRUCTURE model
+stockSTRUCTURE                      Finds stock structure for sampling groups of animals
+stockBOOT                           Assesses uncertainty in stockSTRUCTURE analyses

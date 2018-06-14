@@ -1,0 +1,8 @@
+useDynLib( stockR, .registration = TRUE)
+export( "calcFst",
+"sim.stock.data",
+"stockSTRUCTURE",
+"stockBOOT")
+import( stats)
+import( gtools)
+import( parallel)
