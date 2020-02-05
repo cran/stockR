@@ -58,11 +58,14 @@ stocks$hardClass <- apply( stocks$postProb, 1, which.max)
 stocks$boot <- stockBOOT( stocks, B=25, mc.cores=2)  
 #Assignment accounting for uncertainty. 
 #Could also look at other model quantities (e.g. allele frequencties)
-stocks$uncertClass <- apply( stocks$boot$postProbs, 1:2, quantile, probs=c(0.05,0.5,0.95))
-#careful inspection of this object will give the lower and upper 90% confidence intervals and the median
+stocks$uncertClass <- apply( stocks$boot$postProbs, 1:2, 
+                             quantile, probs=c(0.05,0.5,0.95))
+#careful inspection of this object will give the lower and 
+#upper 90% confidence intervals and the median
 #e.g. for the 99th individual
 print( round( stocks$uncertClass[,99,], 3))
-#showing that there is some uncertainty about which stock this indivudal belongs to.
+#showing that there is some uncertainty about which 
+#stock this indivudal belongs to.
 
 ## ----sampGrps------------------------------------------------------------
 #number of sampling groups (same as number of individuals)
@@ -86,13 +89,16 @@ apply( stocks$postProbs, 1, which.max)
 stocks$boot <- stockBOOT( stocks, B=25, mc.cores=2)  
 #Assignment accounting for uncertainty. 
 #Could also look at other model quantities (e.g. allele frequencties)
-stocks$uncertClass <- apply( stocks$boot$postProbs, 1:2, quantile, probs=c(0.05,0.5,0.95))
-#careful inspection of this object will give the lower and upper 90% confidence intervals and the median
-#e.g. for the 99th individual
+stocks$uncertClass <- apply( stocks$boot$postProbs, 1:2, 
+                             quantile, probs=c(0.05,0.5,0.95))
+#careful inspection of this object will give the lower and 
+#upper 90% confidence intervals and the median
 print( round( stocks$uncertClass, 3))
-#Showing that there is almost no uncertainty about which stock this indivudal belongs to.
-#There is lots of information in this data, especially when genetic information between 
-#individuals in the same sampling group is utilised.
+#Showing that there is almost no uncertainty about which 
+#stock indivudals belong to.
+#There is lots of information in this data, especially when 
+#genetic information between individuals in the same sampling 
+#group is utilised.
 
 ## ----miss----------------------------------------------------------------
 myData <- sim.stock.data( nAnimal=N, nSNP=M, nSampleGrps=N, K=K)

@@ -2,7 +2,14 @@ useDynLib( stockR, .registration = TRUE)
 export( "calcFst",
 "sim.stock.data",
 "stockSTRUCTURE",
-"stockBOOT")
+"stockBOOT",
+"plot.stockBOOT.object")
 import( stats)
 import( gtools)
 import( parallel)
+import( RColorBrewer)
+importFrom("methods","is")
+importFrom("grDevices","adjustcolor","grey")
+importFrom("graphics","barplot","mtext","par","rect","text","plot")
+S3method(plot, stockBOOT.object)
+

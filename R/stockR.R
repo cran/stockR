@@ -64,7 +64,7 @@ function (all.data, taus, K)
     #get the cond means
     means <- totWtsPerSNP <- matrix( NA, nrow=nrow( all.data$SNPdata), ncol=K)
     FishPerSNP <- apply( all.data$SNPdata, 1, function(x) which (!is.na( x)))
-    if( class( FishPerSNP)=='matrix')
+    if( is( FishPerSNP, "matrix"))
       FishPerSNP <- as.list( as.data.frame( FishPerSNP))
     for( kk in 1:K){
       tmp <- all.data$SNPdata * rep( wted.taus.fish[,kk], each=nrow( all.data$SNPdata))
@@ -410,9 +410,9 @@ function (genotypes, npop, pop.mbrship, ploidy = 2)
 
 
 "get.init.taus" <-
-function( grps, magic.num=0.8) 
+function( grps, magic.num=0.8, K) 
 {
-  taus <- model.matrix( ~-1+as.factor( grps))
+  taus <- model.matrix( ~-1+factor( grps, levels=1:K))
   taus <- t( apply( taus, 1, function(x) ifelse( x==1, magic.num, (1-magic.num)/(ncol( taus)-1))))
 
   return( taus)
@@ -433,8 +433,10 @@ function (control, K, all.data)
       else
         tmpData <- all.data$SNPdata
       rotat <- prcomp( t( tmpData), scale.=FALSE, center=FALSE)$rotation
-      PCAdat <- t( tmpData) %*% rotat[,1:control$nKPCA]
-      PCAdat <- t( tmpData)
+      PCAdat <- t( tmpData) %*% rotat[,1:min(control$nKPCA, ncol( rotat))]#min min needed to avoid situations where there are fewer markers than nKPCA
+#      PCAdat <- t( tmpData)    #removed 20-5-2019
+      if( sum( !duplicated( t( all.data$SNPdata))) <= K)  #added 3/6/2019 kmeans will through an error in any case.
+        stop( "K is larger than the number of distinct individuals. Grouping is stupid?")
       cl <- kmeans( PCAdat, K, nstart=control$nKmeanStart)$cluster          
       tab <- table(cl, all.data$sample.grps)
       probs <- sweep(tab, 2, colSums(tab), FUN = "/")
@@ -611,7 +613,7 @@ function( all.data, control)
   weights.fish <- all.data$weights[all.data$sample.grps.num]
   condMeans <- rep( weights.fish, each=all.data$nSNP) * all.data$SNPdata
   FishPerSNP <- apply( condMeans, 1, function(x) which( !is.na( x)))
-  if( class( FishPerSNP)=='matrix')
+  if( is( FishPerSNP, "matrix"))
     FishPerSNP <- as.list( as.data.frame( FishPerSNP))
   totWtsPerSNP <- sapply( FishPerSNP, function(x) sum( weights.fish[x]))
 #  condMeans <- rowSums( condMeans, na.rm=TRUE) / sum( weights.fish) # totWtsPerSNP#the weighted mean
@@ -663,6 +665,84 @@ function( n, dim, alpha=1)
   dir.rvs <- sweep( dir.rvs, 1, STATS=rowSums( dir.rvs), FUN="/")
   
   return( dir.rvs)
+}
+
+
+
+"plot.stockBOOT.object" <- 
+function (x, locations = NULL, plotTitle = NULL, CI.width=0.95, region.lwd=3.5, ...) 
+{
+  if (is.null(x) | !is(x, "stockBOOT.object"))
+    stop("Need stockBOOT.object from stockBOOT function.  Uncertainty cannot be displayed without this object")
+  nFish <- dim(x$postProbs)[1]
+  nGrps <- dim(x$postProbs)[2]
+  if (is.null(locations)) {
+    message("No locations supplied. Plotting as a single location.")
+    locations <- data.frame(region = rep("", nFish), regionOrder = rep(1, nFish))
+  }
+  if ( is(locations, "matrix")) 
+    locations <- as.data.frame(locations)
+  myOrd <- order(locations[, 2])
+  #reorder the important things
+  posty <- x$postProbs[myOrd,,,drop=FALSE]
+  locations <- locations[myOrd,]
+  #get average posterior
+  vals <- apply(posty, 1:2, mean)
+  #get posterior range (of 95% ci)
+  tmpQuant <- apply(posty, 1:2, quantile, probs = c( (1-CI.width) / 2, CI.width + (1-CI.width) / 2))#c(0.025, 0.975))
+  tmpRange <- matrix( tmpQuant[2,,] - tmpQuant[1,,], nrow=dim( tmpQuant)[2], ncol=dim( tmpQuant)[1]-1)
+  
+  #padding out the matrix with white space...
+  tmp <- !duplicated(locations[, 1])
+  tmp1 <- tmp1.expand <- c(which(tmp), nFish + 1)
+  vals1 <- matrix(NA, nrow = nFish + 2 * (length(tmp1) - 2), ncol = ncol(vals))
+  curr.pos <- 1
+  for (jj in 1:(length(tmp1) - 1)) {
+    new.ids <- tmp1[jj]:(tmp1[jj + 1] - 1)
+    vals1[curr.pos:(curr.pos + length(new.ids) - 1), ] <- vals[new.ids, ]
+    curr.pos <- curr.pos + length(new.ids) + 2
+  }
+  #correct the colour for width of CI
+  if (nGrps < 3) 
+    myCols <- RColorBrewer::brewer.pal(3, "Set1")[1:nGrps]
+  else myCols <- RColorBrewer::brewer.pal(nGrps, "Set1")
+  myCols1 <- matrix(rep(myCols, each = nrow(vals1)), nrow = nrow(vals1), ncol = ncol(vals1))
+  present.ids <- !apply(vals1, 1, function(x) all(is.na(x)))
+  if( ncol( myCols1) > 1)
+    for (zz in 1:nrow(tmpRange)) 
+      myCols1[present.ids,][zz, ] <- adjustcolor(myCols1[present.ids,][zz, ], alpha.f = min(1, (1 - tmpRange[zz, ]) + 0.00))
+  rownames(vals1) <- NULL
+  par(mfrow = c(1, 1), oma = c(1, 0, 3, 0), mar = c(4, 0, 2, 0))
+  bp <- barplot(t(vals1), col = rep(adjustcolor("white", alpha.f = 0), 
+                                    nGrps), border = NA, space = 0, yaxt = "n", main = "", 
+                xlab = "", cex.main = 2, cex.names = 1, xpd = TRUE, plot = TRUE, ...)
+  for (nn in 1:nrow(vals1)) {
+    bot <- 0
+    for (mm in 1:ncol(vals1)) {
+      topp <- bot + vals1[nn, mm]
+      rect(xleft = bp[nn] - 0.5, ybottom = bot, xright = bp[nn] + 0.5, ytop = topp, col = myCols1[nn, mm], border = grey(0.75), lwd = 0.1)
+      bot <- topp
+    }
+  }
+  tmppy <- which( is.na( vals1[,1]))
+  lefts <- c( -1, tmppy[seq( from=1, to=length( tmppy), by=2)])
+  rights <- c( tmppy[seq( from=2, to=length( tmppy), by=2)], nrow( vals1)+2)
+  for( ii in 1:length( lefts))
+    rect( xleft=lefts[ii]+1, xright=rights[ii]-2, ybottom=0, ytop=1, lwd=region.lwd)
+  
+  n.to.print <- tapply(locations[, 2], locations[, 2], length)
+  names.to.print <- unique(as.character(locations[, 1]))
+  start.pos <- 1
+  for (jj in seq(from = 1, to = length(tmp1) - 1, by = 1)) {
+    end.pos <- start.pos + diff(tmp1)[jj] - 1
+    loc <- floor((bp[start.pos] + bp[end.pos])/2)
+    text(loc, -0.02, names.to.print[jj], adj = c(0.5, 1), xpd = TRUE)
+    text(loc, -0.13, paste("(n=", n.to.print[jj], ")", sep = ""), xpd = TRUE, adj = c(0.5, 1))
+    bit.to.add <- tmp1[jj + 1] - tmp1[jj]
+    start.pos <- start.pos + bit.to.add + 2
+  }
+  mtext(plotTitle, side = 3, line = 0, outer = TRUE, cex = 1.75)
+  invisible(NULL)
 }
 
 
@@ -977,6 +1057,8 @@ function(fm, fold=5, B=25, mc.cores=NULL)
   tmp <- parallel::mclapply( 1:B, CVfun, fm1=fm, fold=fold, mc.cores=mc.cores)
 
   tmp1 <- as.numeric( do.call( "cbind", tmp))
+  attr( tmp1, "pis") <- fm$pis
+  
   return( tmp1)
 }
 
@@ -1017,7 +1099,7 @@ function(SNPdata=NULL, sample.grps=as.factor( 1:ncol( SNPdata)), K=3, weights=re
     start.grps <- get.start.grps( control, K, all.data)
   
   #initial postprobs
-  taus <- get.init.taus( start.grps, magic.num=control$EM.tau.init.max)
+  taus <- get.init.taus( start.grps, magic.num=control$EM.tau.init.max, K=K)
   #marginal probs
   pis <- calcPis( taus)
   #initial means
