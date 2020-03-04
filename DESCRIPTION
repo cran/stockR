@@ -1,6 +1,6 @@
 Package: stockR
 Title: Identifying Stocks in Genetic Data
-Version: 1.0.73
+Version: 1.0.74
 Authors@R: c(person("Scott D.", "Foster", role = c("aut", "cre"),
                      email = "scott.foster@data61.csiro.au"))
 Author: Scott D. Foster [aut, cre]
@@ -10,8 +10,8 @@ Imports: stats, gtools, parallel, RColorBrewer, methods
 Suggests: knitr
 VignetteBuilder: knitr
 NeedsCompilation: yes
-Packaged: 2020-02-04 00:27:14 UTC; fos085
+Packaged: 2020-03-04 01:03:16 UTC; fos085
 Maintainer: Scott D. Foster <scott.foster@data61.csiro.au>
 Depends: R (>= 2.10)
 Repository: CRAN
-Date/Publication: 2020-02-06 00:30:02 UTC
+Date/Publication: 2020-03-04 06:00:02 UTC

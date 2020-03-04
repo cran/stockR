@@ -71,10 +71,7 @@ function (all.data, taus, K)
       means[,kk] <- rowSums( tmp, na.rm=TRUE)
       totWtsPerSNP[,kk] <- sapply( FishPerSNP, function(x) sum( wted.taus.fish[x,kk]))
     }
-    
-##    totWtsPerSNP <- sapply( FishPerSNP, function(x) sum( weights.fish[x]))
-#    means <- means/(rep(colSums(wted.taus.fish), each = all.data$nSNP))#rep( totWtsPerSNP, times=K)#
-##    means <- means/rep( totWtsPerSNP, times=K)
+    totWtsPerSNP[totWtsPerSNP==0] <- .Machine$double.xmin	#guard against zero wts (when group is empty)
     means <- means/ totWtsPerSNP
     means <- means/2
     means[means > 1] <- 1
