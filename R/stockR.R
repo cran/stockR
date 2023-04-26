@@ -671,6 +671,11 @@ function (x, locations = NULL, plotTitle = NULL, CI.width=0.95, region.lwd=3.5, 
 {
   if (is.null(x) | !is(x, "stockBOOT.object"))
     stop("Need stockBOOT.object from stockBOOT function.  Uncertainty cannot be displayed without this object")
+
+  #to stop new par settings being delivered to user AFTER function exit.  Thanks CRAN maintainer Victoria Wimmer!
+  oldpar <- par(no.readonly = TRUE)    # code line i
+  on.exit(par(oldpar))            # code line i + 1
+
   nFish <- dim(x$postProbs)[1]
   nGrps <- dim(x$postProbs)[2]
   if (is.null(locations)) {
@@ -687,7 +692,7 @@ function (x, locations = NULL, plotTitle = NULL, CI.width=0.95, region.lwd=3.5, 
   vals <- apply(posty, 1:2, mean)
   #get posterior range (of 95% ci)
   tmpQuant <- apply(posty, 1:2, quantile, probs = c( (1-CI.width) / 2, CI.width + (1-CI.width) / 2))#c(0.025, 0.975))
-  tmpRange <- matrix( tmpQuant[2,,] - tmpQuant[1,,], nrow=dim( tmpQuant)[2], ncol=dim( tmpQuant)[1]-1)
+  tmpRange <- matrix( tmpQuant[2,,] - tmpQuant[1,,], nrow=dim( tmpQuant)[2], ncol=dim( tmpQuant)[3])#ncol=dim( tmpQuant)[1]-1)
   
   #padding out the matrix with white space...
   tmp <- !duplicated(locations[, 1])
@@ -721,23 +726,26 @@ function (x, locations = NULL, plotTitle = NULL, CI.width=0.95, region.lwd=3.5, 
       bot <- topp
     }
   }
-  tmppy <- which( is.na( vals1[,1]))
-  lefts <- c( -1, tmppy[seq( from=1, to=length( tmppy), by=2)])
-  rights <- c( tmppy[seq( from=2, to=length( tmppy), by=2)], nrow( vals1)+2)
-  for( ii in 1:length( lefts))
-    rect( xleft=lefts[ii]+1, xright=rights[ii]-2, ybottom=0, ytop=1, lwd=region.lwd)
-  
-  n.to.print <- tapply(locations[, 2], locations[, 2], length)
-  names.to.print <- unique(as.character(locations[, 1]))
-  start.pos <- 1
-  for (jj in seq(from = 1, to = length(tmp1) - 1, by = 1)) {
-    end.pos <- start.pos + diff(tmp1)[jj] - 1
-    loc <- floor((bp[start.pos] + bp[end.pos])/2)
-    text(loc, -0.02, names.to.print[jj], adj = c(0.5, 1), xpd = TRUE)
-    text(loc, -0.13, paste("(n=", n.to.print[jj], ")", sep = ""), xpd = TRUE, adj = c(0.5, 1))
-    bit.to.add <- tmp1[jj + 1] - tmp1[jj]
-    start.pos <- start.pos + bit.to.add + 2
+  if( any( is.na( vals1))){
+    tmppy <- which( is.na( vals1[,1]))
+    lefts <- c( -1, tmppy[seq( from=1, to=length( tmppy), by=2)])
+    rights <- c( tmppy[seq( from=2, to=length( tmppy), by=2)], nrow( vals1)+2)
+    for( ii in 1:length( lefts))
+      rect( xleft=lefts[ii]+1, xright=rights[ii]-2, ybottom=0, ytop=1, lwd=region.lwd)
+    n.to.print <- tapply(locations[, 2], locations[, 2], length)
+    names.to.print <- unique(as.character(locations[, 1]))
+    start.pos <- 1
+    for (jj in seq(from = 1, to = length(tmp1) - 1, by = 1)) {
+      end.pos <- start.pos + diff(tmp1)[jj] - 1
+      loc <- floor((bp[start.pos] + bp[end.pos])/2)
+      text(loc, -0.02, names.to.print[jj], adj = c(0.5, 1), xpd = TRUE)
+      text(loc, -0.13, paste("(n=", n.to.print[jj], ")", sep = ""), xpd = TRUE, adj = c(0.5, 1))
+      bit.to.add <- tmp1[jj + 1] - tmp1[jj]
+      start.pos <- start.pos + bit.to.add + 2
+    }
   }
+  else
+    rect( xleft=0, xright=nrow( vals1), ybottom=0, ytop=1, lwd=region.lwd)
   mtext(plotTitle, side = 3, line = 0, outer = TRUE, cex = 1.75)
   invisible(NULL)
 }

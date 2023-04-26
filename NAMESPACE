@@ -4,6 +4,7 @@ export( "calcFst",
 "stockSTRUCTURE",
 "stockBOOT",
 "plot.stockBOOT.object")
+importFrom(Rcpp, sourceCpp)
 import( stats)
 import( gtools)
 import( parallel)

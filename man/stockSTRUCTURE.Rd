@@ -9,7 +9,7 @@ stockSTRUCTURE(SNPdata = NULL, sample.grps = as.factor(1:ncol(SNPdata)),  K = 3,
 }
 \arguments{
 \item{ SNPdata}{a numeric matrix of dimension (number of SNPs X number of individuals). As the dimension suggests, each row corresponds to an SNP marker and each column an individual. The entries are the number of copies of a marker present in the animal. So, 0 for no copies (aa), 1 for one copy (Aa), and 2 for two copies (AA). Columns that are constant for all animals are removed.}
-\item{ sample.grps}{a factor (or something that can be converted into a factor) of length ncol( SNPdata). This gives the sampling the allocation of animals (columns of SNPdata) to sampling groups. The animals must be ordered the same in sample.grps and in SNPdata. The default sample.grps is to have each animal in its own group (so that no knowledge of breeding groups is assumed).}
+\item{ sample.grps}{a factor (or something that can be converted into a factor) of length ncol( SNPdata). This gives the sampling the allocation of animals (columns of SNPdata) to sampling groups. The animals must be ordered the same in sample.grps and in SNPdata. The default sample.grps is to have each animal in its own group (so that no knowledge of breeding groups is assumed). Note that if sample.grps is specified, then the function's output will have (internal) ordering which is based on the alphabetical listing of sample.grps.}
 \item{ K}{an integer giving the number of stocks to partition the data into}
 \item{ weights}{a numeric vector of length ncol( SNPdata). Gives the weighting for each animal to the analysis. Default is to weight all animals equally. You should have a really good reason not to use equal weights.}
 \item{ start.grps}{a numeric vector of length ncol( SNPdata) or NULL. If NULL the (EM-)optimisation algorithm will be started from groups found using the K-means algorithm. If not NULL then these groups will be used to start the EM optimiser. For most purposes this argument should be set as NULL. If specified, then the model's likelihood is less likely to be maximised and the major signals in the data may not be found. This is not a prior, not in the sense of a Bayesian analysis in any case.  Please do not supply the groups you think are in the data as starting values -- you are likely to just be confirming your own beliefs.}
@@ -28,6 +28,7 @@ An object of class stockSTRUCTURE.object. This is a list with the following comp
 \item{ margLoglTrace}{a trace of the marginal log-likelihood throughout the final optimisation (EM algorithm).}
 \item{ control}{the control parameters used in estimation. See below for details.}
 Note that only condMeans, pis, margLogl, postProbs, and K are returned if control$small.object=TRUE is specified. See below for details.
+Note that if sample.grps is specified, then the value of the function's output is orientated for the alphabetical ordering of sample.grps. This is done to help keep track of the groupped results when the number of sample groups is less than the number of individuals.
 }
 \details{
 Control arguments, and especially their defaults, will vary depending on the type of optimisation used (only a handful are common). The arguments are

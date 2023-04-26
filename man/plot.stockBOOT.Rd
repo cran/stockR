@@ -35,7 +35,9 @@ The intensity of the colour is given by the amount of uncertainty in the estimat
                                  sds=c(alpha=1.6,beta.inform=0.75,beta.noise=0.0005))
       #EM estimation from Kmeans starting values
       tmp <- stockSTRUCTURE( tmpDat1, sample.grps=attr(tmpDat1,"sampleGrps"), K=3, start.grps=NULL)
-      tmpBOOT <- stockBOOT( tmp, B=100, mc.cores=4)
+      #in general, you'll want to use as many cores as possible, or close to.
+      #mc.cores=1 is used here to please the CRAN submission checks
+      tmpBOOT <- stockBOOT( tmp, B=100, mc.cores=1)
       print( round( apply( tmpBOOT$postProbs, FUN=quantile, MARGIN=1:2, probs=c(0.025,0.975))), 5)
       #Note that, in this case, the posterior probabilities are not very informative; they could
       #be anywhere between 0 and 1. There are likely to be a few individuals, of course, where 

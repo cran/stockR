@@ -1,18 +1,18 @@
-## ----prelim, echo = FALSE, results="hide"--------------------------------
+## ----prelim, echo = FALSE, results="hide"-------------------------------------
 library( knitr)
 opts_chunk$set(cache=TRUE, message = FALSE, comment = "", dev="pdf",
                       dpi=300, fig.show = "hold", fig.align = "center")
 
-## ----setup1, eval=FALSE--------------------------------------------------
+## ----setup1, eval=FALSE-------------------------------------------------------
 #  install.packages( "stockR")
 
-## ----setup2--------------------------------------------------------------
+## ----setup2-------------------------------------------------------------------
 library( stockR)
 
-## ----setSeed-------------------------------------------------------------
+## ----setSeed------------------------------------------------------------------
 set.seed( 747)  #a 747 is a big plane
 
-## ----simData-------------------------------------------------------------
+## ----simData------------------------------------------------------------------
 #number of individuals
 N <- 100
 #number of markers to measure on each of the individuals
@@ -24,7 +24,7 @@ K <- 3
 #simulate the data
 myData <- sim.stock.data( nAnimal=N, nSNP=M, nSampleGrps=N, K=K)
 
-## ----lookAtData----------------------------------------------------------
+## ----lookAtData---------------------------------------------------------------
 #the dimensions of the data
 dim( myData)
 #the number of fish
@@ -38,14 +38,14 @@ attributes( myData)$grps
 #in this case the third stock is under-represented in the entire data set. On
 #average, there will be equal numbers though.
 
-## ----lookAtData2---------------------------------------------------------
+## ----lookAtData2--------------------------------------------------------------
 #a quick look at the data -- first 5 markers and 3 individuals
 myData[1:5,1:3]
 #so, all individuals have two allele copies (homozygous) for the third loci
 #the second fish is heterozygous for the allele at the first loci.
 #and so on.
 
-## ----findStocks----------------------------------------------------------
+## ----findStocks---------------------------------------------------------------
 #find the stocks in the data
 stocks <- stockSTRUCTURE( myData, K=3)  #K-EM estimation is default
 #the (posterior) membership probability to each stock
@@ -67,7 +67,7 @@ print( round( stocks$uncertClass[,99,], 3))
 #showing that there is some uncertainty about which 
 #stock this indivudal belongs to.
 
-## ----sampGrps------------------------------------------------------------
+## ----sampGrps-----------------------------------------------------------------
 #number of sampling groups (same as number of individuals)
 S <- 15   #there are now 15 sampling groups (100 individuals will be 
 	#distributed between them).
@@ -100,7 +100,7 @@ print( round( stocks$uncertClass, 3))
 #genetic information between individuals in the same sampling 
 #group is utilised.
 
-## ----miss----------------------------------------------------------------
+## ----miss---------------------------------------------------------------------
 myData <- sim.stock.data( nAnimal=N, nSNP=M, nSampleGrps=N, K=K)
 #add some missing data to simulation. There are 30% randomly missing scores.
 totMark <- prod( dim( myData))
@@ -114,10 +114,11 @@ attributes( myData)$grps
 apply( stocks$postProbs, 1, which.max)
 #bootstrap not performed for this example
 
-## ----Tidy----------------------------------------------------------------
-#tidy
-rm( list=ls())
+## ----Tidy, eval=FALSE---------------------------------------------------------
+#  #THIS IS SUGGESTIVE ONLY.
+#  #You may wish to tidy your workspace.
+#  #rm( list=ls())
 
-## ----sessionInfo, results = "asis", echo = FALSE-------------------------
+## ----sessionInfo, results = "asis", echo = FALSE------------------------------
 toLatex(sessionInfo())
 
